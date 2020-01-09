@@ -4,6 +4,7 @@
 
 #include "cxxopts.hpp"
 #include "functions.hpp"
+#include "sha256/sha256.h"
 
 using namespace std;
 
@@ -34,13 +35,14 @@ int main(int argc, char *argv[]) {
         exit(0);
     }
     if (result.count("positional")) {
-        std::cout << "Positional = {" << std::endl;
         std::string str;
         auto &v = result["positional"].as<std::vector<std::string>>();
         for (const auto &s : v) {
             str += s + " ";
         }
-        std::cout << "\"" << trim(str) << "\"" << std::endl << "}" << std::endl;
+        str = trim(str);
+
+        cout << "sha256('" << str << "'): " << sha256(str) << endl;
     }
     std::string taskdir;
     if  (result.count("taskdir")) {
