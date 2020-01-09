@@ -63,7 +63,7 @@ namespace cxxopts
     };
 }
 
-//when we ask cxxopts to use Unicode, help strings are processed using ICU,
+//when we ask opts to use Unicode, help strings are processed using ICU,
 //which results in the correct lengths being computed for strings when they
 //are formatted for the help output
 //it is necessary to make sure that <unicode/unistr.h> can be found by the
@@ -72,7 +72,7 @@ namespace cxxopts
 #ifdef CXXOPTS_USE_UNICODE
 #include <unicode/unistr.h>
 
-namespace cxxopts
+namespace opts
 {
   typedef icu::UnicodeString String;
 
@@ -190,17 +190,17 @@ namespace cxxopts
 namespace std
 {
   inline
-  cxxopts::UnicodeStringIterator
+  opts::UnicodeStringIterator
   begin(const icu::UnicodeString& s)
   {
-    return cxxopts::UnicodeStringIterator(&s, 0);
+    return opts::UnicodeStringIterator(&s, 0);
   }
 
   inline
-  cxxopts::UnicodeStringIterator
+  opts::UnicodeStringIterator
   end(const icu::UnicodeString& s)
   {
-    return cxxopts::UnicodeStringIterator(&s, s.length());
+    return opts::UnicodeStringIterator(&s, s.length());
   }
 }
 
