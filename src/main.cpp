@@ -1,9 +1,10 @@
 #include <filesystem>
+#include <unordered_map>
 
 #include "functions.hpp"
 #include "opts/cxxopts.hpp"
 
-using namespace std;
+std::unordered_map<std::string, std::string> tasks = {};
 
 int main(int argc, char *argv[]) {
   cxxopts::Options options("MyProgram", "One line description of MyProgram");
@@ -37,7 +38,16 @@ int main(int argc, char *argv[]) {
       str += s + " ";
     }
     auto src_str = trim(str);
-    cout << "sha256('" << str << "'): " << sha256_hash(str) << endl;
+    // tasks[sha256_hash(str)] = str;
+    std::string hash = sha256_hash(str);
+    std::cout << "sha256('" << str << "'): " << hash << std::endl;
+
+    // for (const auto &n : tasks) {
+    //   std::cout << "Key:[" << n.first << "] Value:[" << n.second << "]\n";
+    // }
+
+    std::string p = prefix(hash, tasks);
+    std::cout << "prefix: " << p << std::endl;
   }
   std::string taskdir;
   if (result.count("taskdir")) {
