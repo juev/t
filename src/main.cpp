@@ -2,7 +2,7 @@
 
 #include "functions.hpp"
 #include "opts/cxxopts.hpp"
-#include "sha1/sha1.hpp"
+#include "sha256/picosha2.h"
 
 using namespace std;
 
@@ -37,10 +37,13 @@ int main(int argc, char *argv[]) {
     for (const auto &s : v) {
       str += s + " ";
     }
-    str = trim(str);
-    char hex[SHA1_HEX_SIZE];
-    sha1(str.c_str()).finalize().print_hex(hex);
-    cout << "sha1('" << str << "'): " << hex << endl;
+    auto src_str = trim(str);
+    std::vector<unsigned char> hash(picosha2::k_digest_size);
+    picosha2::hash256(src_str.begin(), src_str.end(), hash.begin(), hash.end());
+
+    std::string hex_str =
+        picosha2::bytes_to_hex_string(hash.begin(), hash.end());
+    cout << "sha256('" << str << "'): " << hex_str << endl;
   }
   std::string taskdir;
   if (result.count("taskdir")) {
