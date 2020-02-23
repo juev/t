@@ -94,16 +94,21 @@ int main(int argc, char *argv[]) {
       "f,finish", "mark TASK as finished", cxxopts::value<std::string>())(
       "r,remove", "Remove TASK from list", cxxopts::value<std::string>())(
       "l,list", "work on LIST", cxxopts::value<std::string>())(
-      "t,taskdir", "work on the lists in DIR", cxxopts::value<std::string>())(
+      "t,taskdir", "work on the lists in DIR",
+      cxxopts::value<std::string>()->default_value("tasks"))(
       "d,delete-if-empty", "delete the task file if it becomes empty")(
       "g,grep", "print only tasks that contain WORD",
       cxxopts::value<std::string>())(
-      "v,verbose", "print more detailed output (full task ids, etc)")(
-      "q,quiet", "print less detailed output (no task ids, etc)")(
-      "D,done", "list done tasks instead of unfinished ones")("h,help", "HELP");
+      "v,verbose", "print more detailed output (full task ids, etc)",
+      cxxopts::value<bool>()->default_value("false"))(
+      "q,quiet", "print less detailed output (no task ids, etc)",
+      cxxopts::value<bool>()->default_value("false"))(
+      "D,done", "list done tasks instead of unfinished ones",
+      cxxopts::value<bool>()->default_value("false"))("h,help", "HELP");
   options.parse_positional({"positional"});
   auto result = options.parse(argc, argv);
   const auto &arguments = result.arguments();
+
   if (result.count("help")) {
     std::cout << options.help() << std::endl;
     exit(0);
@@ -129,38 +134,51 @@ int main(int argc, char *argv[]) {
 
   // edit task
   if (result.count("edit")) {
-    std::string str;
-    auto &v = result["edit"].as<std::vector<std::string>>();
-    auto task = v[0];
-    std::vector<std::string> args(v.begin() + 1, v.end());
-    for (const auto &s : args) {
-      str += s + " ";
+    auto task_prefix = result["edit"].as<std::string>();
+    auto task_hash = prefixes[task_prefix];
+    if (tasks.find(task_hash) != tasks.end()) {
+      std::string str;
+      auto &v = result["positional"].as<std::vector<std::string>>();
+      for (const auto &s : v) {
+        str += s + " ";
+      }
+      auto src_str = trim(str);
+      if (src_str.length() > 0) {
+        tasks[sha256_hash(src_str)] = src_str;
+        tasks.erase(task_hash);
+        writeFiles();
+      }
+    } else {
+      std::cout << "Task not found: " << task_prefix << std::endl;
     }
-    if (tasks.find(task) != tasks.end()) {
-      tasks.erase(task);
-      tasks[sha256_hash(str)] = str;
-    }
-    writeFiles();
     exit(0);
   }
 
   // finish task
   if (result.count("finish")) {
-    auto &v = result["finish"].as<std::vector<std::string>>();
-    auto task = v[0];
-    tasksDone[prefixes[task]] = tasks[task];
-    tasks.erase(task);
-    writeFiles();
+    auto task_prefix = result["finish"].as<std::string>();
+    auto task_hash = prefixes[task_prefix];
+    if (tasks.find(task_hash) != tasks.end()) {
+      tasksDone[task_hash] = tasks[task_hash];
+      tasks.erase(task_hash);
+      writeFiles();
+    } else {
+      std::cout << "Task not found: " << task_prefix << std::endl;
+    }
     exit(0);
   }
 
   // remove task
   if (result.count("remove")) {
     std::cout << "remove task" << std::endl;
-    auto &v = result["remove"].as<std::vector<std::string>>();
-    auto task = v[0];
-    tasks.erase(task);
-    writeFiles();
+    auto task_prefix = result["remove"].as<std::string>();
+    auto task_hash = prefixes[task_prefix];
+    if (tasks.find(task_hash) != tasks.end()) {
+      tasks.erase(task_hash);
+      writeFiles();
+    } else {
+      std::cout << "Task not found: " << task_prefix << std::endl;
+    }
     exit(0);
   }
 
@@ -172,9 +190,9 @@ int main(int argc, char *argv[]) {
       str += s + " ";
     }
     auto src_str = trim(str);
-    tasks[sha256_hash(str)] = str;
-    std::string hash = sha256_hash(str);
-    std::cout << "sha256('" << str << "'): " << hash << std::endl;
+    tasks[sha256_hash(src_str)] = src_str;
+    std::string hash = sha256_hash(src_str);
+    std::cout << "sha256('" << src_str << "'): " << hash << std::endl;
 
     std::string p = prefix(hash);
     std::cout << "prefix: " << p << std::endl;
