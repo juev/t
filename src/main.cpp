@@ -9,6 +9,8 @@ namespace fs = std::filesystem;
 
 std::unordered_map<std::string, std::string> tasks = {};
 std::unordered_map<std::string, std::string> tasksDone = {};
+std::unordered_map<std::string, std::string> prefixes = {};
+
 fs::path taskpath, donepath;
 std::string taskdir;
 std::string taskfile;
@@ -31,7 +33,14 @@ std::string prefix(std::string hash) {
   return hash;
 }
 
+void get_prefixes() {
+  for (const auto &n : tasks) {
+    prefixes[prefix(n.first)] = n.first;
+  }
+}
+
 void readFiles() {
+  // read task file
   std::cout << "taskfile: " << taskpath << std::endl;
   std::ifstream intaskfile(taskpath);
 
@@ -40,7 +49,9 @@ void readFiles() {
     std::istringstream iss(line);
     tasks[sha256_hash(line)] = line;
   }
+  intaskfile.close();
 
+  // read done file
   std::cout << "done taskfile: " << donepath << std::endl;
   std::ifstream indonefile(donepath);
 
@@ -48,6 +59,28 @@ void readFiles() {
     std::istringstream iss(line);
     tasksDone[sha256_hash(line)] = line;
   }
+  indonefile.close();
+
+  get_prefixes();
+}
+
+void writeFiles() {
+  std::ofstream outtaskfile(taskpath);
+
+  if (outtaskfile.is_open()) {
+    for (const auto &n : tasks) {
+      outtaskfile << n.second << std::endl;
+    }
+  }
+  outtaskfile.close();
+
+  std::ofstream outdonefile(donepath);
+  if (outdonefile.is_open()) {
+    for (const auto &n : tasksDone) {
+      outdonefile << n.second << std::endl;
+    }
+  }
+  outdonefile.close();
 }
 
 int main(int argc, char *argv[]) {
@@ -83,26 +116,19 @@ int main(int argc, char *argv[]) {
     taskdir = fs::current_path();
   }
 
-  std::cout << "Current path is " << taskdir << '\n';
-
   if (result.count("list")) {
     taskfile = result["list"].as<std::string>();
   } else {
     taskfile = "tasks";
   }
 
-  std::cout << "Current list is " << taskfile << '\n';
-
   taskpath = fs::path(taskdir) / fs::path(taskfile);
   donepath = fs::path(taskdir) / fs::path("." + taskfile + ".done");
 
   readFiles();
-  for (const auto &n : tasks) {
-    std::cout << "Key:[" << n.first << "] Value:[" << n.second << "]\n";
-  }
-  std::cout << std::endl;
-  for (const auto &n : tasksDone) {
-    std::cout << "Key:[" << n.first << "] Value:[" << n.second << "]\n";
+
+  for (const auto &n : prefixes) {
+    std::cout << "Key:[" << n.first << "] Value:[" << tasks[n.second] << "]\n";
   }
   std::cout << std::endl;
 
@@ -113,12 +139,14 @@ int main(int argc, char *argv[]) {
       str += s + " ";
     }
     auto src_str = trim(str);
-    // tasks[sha256_hash(str)] = str;
+    tasks[sha256_hash(str)] = str;
     std::string hash = sha256_hash(str);
     std::cout << "sha256('" << str << "'): " << hash << std::endl;
 
     std::string p = prefix(hash);
     std::cout << "prefix: " << p << std::endl;
+
+    writeFiles();
   }
   return 0;
 }
