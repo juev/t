@@ -41,7 +41,7 @@ void get_prefixes() {
 
 void readFiles() {
   // read task file
-  std::cout << "taskfile: " << taskpath << std::endl;
+  // std::cout << "taskfile: " << taskpath << std::endl;
   std::ifstream intaskfile(taskpath);
 
   std::string line;
@@ -52,7 +52,7 @@ void readFiles() {
   intaskfile.close();
 
   // read done file
-  std::cout << "done taskfile: " << donepath << std::endl;
+  // std::cout << "done taskfile: " << donepath << std::endl;
   std::ifstream indonefile(donepath);
 
   while (std::getline(indonefile, line)) {
@@ -127,11 +127,44 @@ int main(int argc, char *argv[]) {
 
   readFiles();
 
-  for (const auto &n : prefixes) {
-    std::cout << "Key:[" << n.first << "] Value:[" << tasks[n.second] << "]\n";
+  // edit task
+  if (result.count("edit")) {
+    std::string str;
+    auto &v = result["edit"].as<std::vector<std::string>>();
+    auto task = v[0];
+    std::vector<std::string> args(v.begin() + 1, v.end());
+    for (const auto &s : args) {
+      str += s + " ";
+    }
+    if (tasks.find(task) != tasks.end()) {
+      tasks.erase(task);
+      tasks[sha256_hash(str)] = str;
+    }
+    writeFiles();
+    exit(0);
   }
-  std::cout << std::endl;
 
+  // finish task
+  if (result.count("finish")) {
+    auto &v = result["finish"].as<std::vector<std::string>>();
+    auto task = v[0];
+    tasksDone[prefixes[task]] = tasks[task];
+    tasks.erase(task);
+    writeFiles();
+    exit(0);
+  }
+
+  // remove task
+  if (result.count("remove")) {
+    std::cout << "remove task" << std::endl;
+    auto &v = result["remove"].as<std::vector<std::string>>();
+    auto task = v[0];
+    tasks.erase(task);
+    writeFiles();
+    exit(0);
+  }
+
+  // add new task
   if (result.count("positional")) {
     std::string str;
     auto &v = result["positional"].as<std::vector<std::string>>();
@@ -147,6 +180,18 @@ int main(int argc, char *argv[]) {
     std::cout << "prefix: " << p << std::endl;
 
     writeFiles();
+    exit(0);
+  }
+
+  // print tasks
+  if (result.count("done")) {
+    for (const auto &n : tasksDone) {
+      std::cout << n.first << ": " << n.second << std::endl;
+    }
+  } else {
+    for (const auto &n : prefixes) {
+      std::cout << n.first << ": " << tasks[n.second] << std::endl;
+    }
   }
   return 0;
 }
