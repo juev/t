@@ -238,9 +238,9 @@ int main(int argc, char *argv[]) {
       if (result.count("quiet")) {
         std::cout << n.second << std::endl;
       } else if (result.count("verbose")) {
-        std::cout << n.first << ": " << n.second << std::endl;
+        std::cout << n.first << " - " << n.second << std::endl;
       } else {
-        std::cout << getPrefixByHash(n.first) << ": " << n.second << std::endl;
+        std::cout << getPrefixByHash(n.first) << " - " << n.second << std::endl;
       }
     }
   }
