@@ -11,13 +11,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macOS-latest, windows-latest]
-        include:
-          - os: ubuntu-latest
-            zip_name: ninja-linux
-          - os: macOS-latest
-            zip_name: ninja-mac
-          - os: windows-latest
-            zip_name: ninja-win
 
     steps:
       - uses: actions/checkout@v1
@@ -28,12 +21,12 @@ jobs:
           mkdir build && cd build
           cmake -DCMAKE_BUILD_TYPE=Release ..
           cmake --build . --parallel --config Release --target t
-      # Upload ninja binary archive as an artifact
+
       - name: Upload artifact
         uses: actions/upload-artifact@v1
         with:
-          name: ninja-binary-archives
-          path: artifact
+          name: t-binary
+          path: build/t
 
       - name: Upload release asset
         if: github.event.action == 'published'
