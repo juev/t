@@ -1,4 +1,4 @@
-name: Release Ninja Binaries
+name: Release t Binaries
 
 on:
   push:

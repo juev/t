@@ -28,16 +28,18 @@ std::string prefix(std::string hash) {
   std::string prefix;
   for (size_t i = 1; i <= hash.length(); i++) {
     prefix = hash.substr(0, i);
-    if (tasks.find(prefix) == tasks.end())
+    if (prefixes.find(prefix) == prefixes.end())
       return prefix;
   }
   return hash;
 }
 
-void get_prefixes() {
-  for (const auto &n : tasks) {
-    prefixes[prefix(n.first)] = n.first;
+std::string getPrefixByHash(std::string hash) {
+  for (const auto &n : prefixes) {
+    if (n.second == hash)
+      return n.first;
   }
+  return "";
 }
 
 void readFiles() {
@@ -60,7 +62,9 @@ void readFiles() {
   }
   indonefile.close();
 
-  get_prefixes();
+  for (const auto &n : tasks) {
+    prefixes[prefix(n.first)] = n.first;
+  }
 }
 
 void writeFiles() {
@@ -170,28 +174,31 @@ int main(int argc, char *argv[]) {
   // finish task
   if (result.count("finish")) {
     auto task_prefix = result["finish"].as<std::string>();
-    auto task_hash = prefixes[task_prefix];
-    if (tasks.find(task_hash) != tasks.end()) {
-      tasksDone[task_hash] = tasks[task_hash];
-      tasks.erase(task_hash);
-      writeFiles();
-    } else {
-      std::cout << "Task not found: " << task_prefix << std::endl;
+    for (const auto &el : split(task_prefix, ',')) {
+      auto task_hash = prefixes[el];
+      if (tasks.find(task_hash) != tasks.end()) {
+        tasksDone[task_hash] = tasks[task_hash];
+        tasks.erase(task_hash);
+      } else {
+        std::cout << "Task not found: " << el << std::endl;
+      }
     }
+    writeFiles();
     exit(0);
   }
 
   // remove task
   if (result.count("remove")) {
-    std::cout << "remove task" << std::endl;
     auto task_prefix = result["remove"].as<std::string>();
-    auto task_hash = prefixes[task_prefix];
-    if (tasks.find(task_hash) != tasks.end()) {
-      tasks.erase(task_hash);
-      writeFiles();
-    } else {
-      std::cout << "Task not found: " << task_prefix << std::endl;
+    for (const auto &el : split(task_prefix, ',')) {
+      auto task_hash = prefixes[el];
+      if (tasks.find(task_hash) != tasks.end()) {
+        tasks.erase(task_hash);
+      } else {
+        std::cout << "Task not found: " << el << std::endl;
+      }
     }
+    writeFiles();
     exit(0);
   }
 
@@ -216,47 +223,27 @@ int main(int argc, char *argv[]) {
     for (const auto &n : tasksDone) {
       std::cout << n.second << std::endl;
     }
+    exit(0);
+  }
+
+  std::string word;
+  if (result.count("grep")) {
+    word = result["grep"].as<std::string>();
   } else {
-    if (result.count("quiet")) {
-      if (result.count("grep")) {
-        auto word = result["grep"].as<std::string>();
-        for (const auto &n : tasks) {
-          if (n.second.find(word) != std::string::npos) {
-            std::cout << n.second << std::endl;
-          }
-        }
+    word = "";
+  }
+
+  for (const auto &n : tasks) {
+    if (n.second.find(word) != std::string::npos) {
+      if (result.count("quiet")) {
+        std::cout << n.second << std::endl;
+      } else if (result.count("verbose")) {
+        std::cout << n.first << ": " << n.second << std::endl;
       } else {
-        for (const auto &n : tasks) {
-          std::cout << n.second << std::endl;
-        }
-      }
-    } else if (result.count("verbose")) {
-      if (result.count("grep")) {
-        auto word = result["grep"].as<std::string>();
-        for (const auto &n : tasks) {
-          if (n.second.find(word) != std::string::npos) {
-            std::cout << n.first << ": " << n.second << std::endl;
-          }
-        }
-      } else {
-        for (const auto &n : tasks) {
-          std::cout << n.first << ": " << n.second << std::endl;
-        }
-      }
-    } else {
-      if (result.count("grep")) {
-        auto word = result["grep"].as<std::string>();
-        for (const auto &n : prefixes) {
-          if (tasks[n.second].find(word) != std::string::npos) {
-            std::cout << n.first << ": " << tasks[n.second] << std::endl;
-          }
-        }
-      } else {
-        for (const auto &n : prefixes) {
-          std::cout << n.first << ": " << tasks[n.second] << std::endl;
-        }
+        std::cout << getPrefixByHash(n.first) << ": " << n.second << std::endl;
       }
     }
   }
+
   return 0;
 }
