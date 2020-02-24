@@ -18,7 +18,7 @@ jobs:
       - name: Build
         shell: bash
         run: |
-          apt-get update && apt-get install clang-6.0
+          sudo apt-get update && sudo apt-get install clang-6.0
           mkdir build && cd build
           cmake -DCMAKE_BUILD_TYPE=Release ..
           cmake --build . --parallel --config Release --target t
