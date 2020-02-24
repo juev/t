@@ -6,6 +6,8 @@ not organize them.
 This is fork [sjl/t](https://github.com/sjl/t) project on c++ language. You need 
 only one binary file for work with your task.
 
+**Important**: file format was changed. You cannot use file from sjl/t in this program.  
+
 # Using t
 
 `t` is quick and easy to use.
