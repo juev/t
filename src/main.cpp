@@ -14,6 +14,7 @@ std::unordered_map<std::string, std::string> prefixes = {};
 fs::path taskpath, donepath;
 std::string taskdir;
 std::string taskfile;
+bool deleteIfEmpthy;
 
 std::string sha256_hash(std::string text) {
   std::vector<unsigned char> hash(picosha2::k_digest_size);
@@ -41,7 +42,6 @@ void get_prefixes() {
 
 void readFiles() {
   // read task file
-  // std::cout << "taskfile: " << taskpath << std::endl;
   std::ifstream intaskfile(taskpath);
 
   std::string line;
@@ -52,7 +52,6 @@ void readFiles() {
   intaskfile.close();
 
   // read done file
-  // std::cout << "done taskfile: " << donepath << std::endl;
   std::ifstream indonefile(donepath);
 
   while (std::getline(indonefile, line)) {
@@ -65,26 +64,30 @@ void readFiles() {
 }
 
 void writeFiles() {
-  std::ofstream outtaskfile(taskpath);
-
-  if (outtaskfile.is_open()) {
-    for (const auto &n : tasks) {
-      outtaskfile << n.second << std::endl;
+  if (deleteIfEmpthy && (tasks.size() == 0)) {
+    remove(taskpath);
+    remove(donepath);
+  } else {
+    std::ofstream outtaskfile(taskpath);
+    if (outtaskfile.is_open()) {
+      for (const auto &n : tasks) {
+        outtaskfile << n.second << std::endl;
+      }
     }
-  }
-  outtaskfile.close();
-
-  std::ofstream outdonefile(donepath);
-  if (outdonefile.is_open()) {
-    for (const auto &n : tasksDone) {
-      outdonefile << n.second << std::endl;
+    outtaskfile.close();
+    std::ofstream outdonefile(donepath);
+    if (outdonefile.is_open()) {
+      for (const auto &n : tasksDone) {
+        outdonefile << n.second << std::endl;
+      }
     }
+    outdonefile.close();
   }
-  outdonefile.close();
 }
 
 int main(int argc, char *argv[]) {
-  cxxopts::Options options("MyProgram", "One line description of MyProgram");
+  cxxopts::Options options(
+      "t", "t is for people that want do things, not organize their tasks.");
   options.allow_unrecognised_options().add_options()(
       "positional",
       "Positional arguments: these are the arguments that are entered "
@@ -93,17 +96,18 @@ int main(int argc, char *argv[]) {
       "e,edit", "edit TASK to contain TEXT", cxxopts::value<std::string>())(
       "f,finish", "mark TASK as finished", cxxopts::value<std::string>())(
       "r,remove", "Remove TASK from list", cxxopts::value<std::string>())(
-      "l,list", "work on LIST", cxxopts::value<std::string>())(
-      "t,taskdir", "work on the lists in DIR",
+      "l,list", "work on LIST",
       cxxopts::value<std::string>()->default_value("tasks"))(
-      "d,delete-if-empty", "delete the task file if it becomes empty")(
+      "t,taskdir", "work on the lists in DIR", cxxopts::value<std::string>())(
+      "d,delete-if-empty", "delete the task file if it becomes empty",
+      cxxopts::value<bool>()->default_value("false"))(
       "g,grep", "print only tasks that contain WORD",
       cxxopts::value<std::string>())(
       "v,verbose", "print more detailed output (full task ids, etc)",
       cxxopts::value<bool>()->default_value("false"))(
       "q,quiet", "print less detailed output (no task ids, etc)",
       cxxopts::value<bool>()->default_value("false"))(
-      "D,done", "list done tasks instead of unfinished ones",
+      "done", "list done tasks instead of unfinished ones",
       cxxopts::value<bool>()->default_value("false"))("h,help", "HELP");
   options.parse_positional({"positional"});
   auto result = options.parse(argc, argv);
@@ -129,6 +133,15 @@ int main(int argc, char *argv[]) {
 
   taskpath = fs::path(taskdir) / fs::path(taskfile);
   donepath = fs::path(taskdir) / fs::path("." + taskfile + ".done");
+
+  if (!fs::exists(fs::path(taskdir))) {
+    std::cout << "Path is not exist: " << fs::path(taskdir) << std::endl;
+    exit(1);
+  }
+
+  if (result.count("delete-if-empty")) {
+    deleteIfEmpthy = true;
+  }
 
   readFiles();
 
@@ -192,10 +205,7 @@ int main(int argc, char *argv[]) {
     auto src_str = trim(str);
     tasks[sha256_hash(src_str)] = src_str;
     std::string hash = sha256_hash(src_str);
-    std::cout << "sha256('" << src_str << "'): " << hash << std::endl;
-
     std::string p = prefix(hash);
-    std::cout << "prefix: " << p << std::endl;
 
     writeFiles();
     exit(0);
@@ -204,11 +214,48 @@ int main(int argc, char *argv[]) {
   // print tasks
   if (result.count("done")) {
     for (const auto &n : tasksDone) {
-      std::cout << n.first << ": " << n.second << std::endl;
+      std::cout << n.second << std::endl;
     }
   } else {
-    for (const auto &n : prefixes) {
-      std::cout << n.first << ": " << tasks[n.second] << std::endl;
+    if (result.count("quiet")) {
+      if (result.count("grep")) {
+        auto word = result["grep"].as<std::string>();
+        for (const auto &n : tasks) {
+          if (n.second.find(word) != std::string::npos) {
+            std::cout << n.second << std::endl;
+          }
+        }
+      } else {
+        for (const auto &n : tasks) {
+          std::cout << n.second << std::endl;
+        }
+      }
+    } else if (result.count("verbose")) {
+      if (result.count("grep")) {
+        auto word = result["grep"].as<std::string>();
+        for (const auto &n : tasks) {
+          if (n.second.find(word) != std::string::npos) {
+            std::cout << n.first << ": " << n.second << std::endl;
+          }
+        }
+      } else {
+        for (const auto &n : tasks) {
+          std::cout << n.first << ": " << n.second << std::endl;
+        }
+      }
+    } else {
+      if (result.count("grep")) {
+        auto word = result["grep"].as<std::string>();
+        for (const auto &n : prefixes) {
+          if (tasks[n.second].find(word) != std::string::npos) {
+            std::cout << n.first << ": " << tasks[n.second] << std::endl;
+          }
+        }
+      } else {
+        for (const auto &n : prefixes) {
+          std::cout << n.first << ": " << tasks[n.second] << std::endl;
+        }
+      }
     }
   }
   return 0;

@@ -2,7 +2,8 @@
 
 ## TODO
 
-- [ ] d,delete-if-empty
-- [ ] grep
-- [ ] verbose
-- [ ] quiet
+- [X] d,delete-if-empty
+- [X] verbose
+- [X] quiet
+- [X] error handling
+- [X] grep
