@@ -1,4 +1,1 @@
-cmake-build-release
-cmake-build-debug
-.ccls-cache
-build
+/target
