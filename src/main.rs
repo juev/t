@@ -36,8 +36,17 @@ fn main() {
     };
 
     if matches.opt_present("h") {
-        let brief = "t is for people that want do things, not organize their tasks";
-        opts.usage(&brief);
+        let brief = "t is for people that want do things, not organize their tasks
+
+Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
+        print!("{}", opts.usage(&brief));
         return;
     }
+
+    let input = if !matches.free.is_empty() {
+        matches.free[0].clone()
+    } else {
+        "Print tasks".to_string()
+    };
+    println!("{}", input);
 }
