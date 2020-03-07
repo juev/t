@@ -2,7 +2,8 @@ extern crate getopts;
 
 use getopts::*;
 use std::env;
-
+use std::fs;
+use std::path::PathBuf;
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut opts = Options::new();
@@ -42,6 +43,22 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
         print!("{}", opts.usage(&brief));
         return;
     }
+
+    let path = env::current_dir().unwrap();
+    let taskfile = matches.opt_str("l").unwrap_or_else(|| "tasks".to_string());
+    let taskdir = matches
+        .opt_str("t")
+        .unwrap_or_else(|| path.to_str().unwrap().to_string());
+
+    let mut taskpath = PathBuf::from(&taskdir);
+    taskpath.push(&taskfile);
+
+    let donefile = format!(".{}.done", taskfile);
+    let mut donepath = PathBuf::from(&taskdir);
+    donepath.push(donefile);
+
+    let contents = fs::read_to_string(taskpath).expect("Something went wrong reading the file");
+    println!("{}", contents);
 
     let input = if !matches.free.is_empty() {
         matches.free[0].clone()
