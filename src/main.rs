@@ -1,9 +1,14 @@
 extern crate getopts;
 
+use crypto::digest::Digest;
+use crypto::sha2::Sha256;
 use getopts::*;
+use std::collections::HashMap;
 use std::env;
 use std::fs;
+use std::path::Path;
 use std::path::PathBuf;
+use std::process::exit;
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut opts = Options::new();
@@ -53,12 +58,13 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     let mut taskpath = PathBuf::from(&taskdir);
     taskpath.push(&taskfile);
 
+    println!("taskdir: {}", taskpath.to_str().unwrap().to_string());
+
     let donefile = format!(".{}.done", taskfile);
     let mut donepath = PathBuf::from(&taskdir);
     donepath.push(donefile);
 
-    let contents = fs::read_to_string(taskpath).expect("Something went wrong reading the file");
-    println!("{}", contents);
+    let (tasks, done) = read_files(taskpath, donepath);
 
     let input = if !matches.free.is_empty() {
         matches.free[0].clone()
@@ -66,4 +72,38 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
         "Print tasks".to_string()
     };
     println!("{}", input);
+}
+
+fn hash(str: String) -> String {
+    let mut hasher = Sha256::new();
+    hasher.input_str(&str);
+    hasher.result_str()
+}
+
+fn read_files(
+    taskpath: PathBuf,
+    donefile: PathBuf,
+) -> (HashMap<String, String>, HashMap<String, String>) {
+    if !Path::new(&taskpath).exists() {
+        println!("File {} does not exist...", taskpath.to_str().unwrap());
+        exit(1);
+    }
+    let contents = fs::read_to_string(taskpath).unwrap_or_else(|_| "".to_string());
+    println!("{}", contents);
+
+    let contents_done = fs::read_to_string(donefile).unwrap_or_else(|_| "".to_string());
+    println!("{}", contents);
+
+    let mut tasks: HashMap<String, String> = HashMap::new();
+    let mut done: HashMap<String, String> = HashMap::new();
+
+    for line in contents.lines() {
+        tasks.insert(hash(line.to_string()), line.to_string());
+    }
+
+    for line in contents_done.lines() {
+        done.insert(hash(line.to_string()), line.to_string());
+    }
+
+    (tasks, done)
 }
