@@ -60,7 +60,36 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
 
     println!("taskdir: {}", taskpath.to_str().unwrap().to_string());
 
-    let (mut tasks, done) = read_files(&taskpath);
+    // read files
+    let donefile = format!(
+        ".{}.done",
+        taskpath
+            .as_path()
+            .file_name()
+            .unwrap()
+            .to_os_string()
+            .into_string()
+            .unwrap()
+    );
+    let mut donepath = PathBuf::from(taskpath.as_path().parent().unwrap().to_path_buf());
+    donepath.push(donefile);
+
+    let contents = fs::read_to_string(&taskpath).unwrap_or_else(|_| "".to_string());
+    println!("{}", contents);
+
+    let contents_done = fs::read_to_string(&donepath).unwrap_or_else(|_| "".to_string());
+    println!("{}", contents);
+
+    let mut tasks: HashMap<String, String> = HashMap::new();
+    let mut done: HashMap<String, String> = HashMap::new();
+
+    for line in contents.lines() {
+        tasks.insert(hash(&line.to_string()), line.to_string());
+    }
+
+    for line in contents_done.lines() {
+        done.insert(hash(&line.to_string()), line.to_string());
+    }
 
     if matches.opt_present("done") {
         for (hash, task) in done {
@@ -74,7 +103,7 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
         tasks.insert(hash(&task), task);
         let delete_empty = matches.opt_present("d");
         println!("{:?}", delete_empty);
-        write_files(tasks, done, taskpath, delete_empty);
+        write_files(&tasks, &done, &taskpath, delete_empty);
         return;
     }
 
@@ -89,48 +118,10 @@ fn hash(str: &String) -> String {
     hasher.result_str()
 }
 
-fn read_files(taskpath: &PathBuf) -> (HashMap<String, String>, HashMap<String, String>) {
-    // if !Path::new(&taskpath).exists() {
-    //     println!("File {} does not exist...", taskpath.to_str().unwrap());
-    //     exit(1);
-    // }
-    let donefile = format!(
-        ".{}.done",
-        taskpath
-            .as_path()
-            .file_name()
-            .unwrap()
-            .to_os_string()
-            .into_string()
-            .unwrap()
-    );
-    let mut donepath = PathBuf::from(taskpath.as_path().parent().unwrap().to_path_buf());
-    donepath.push(donefile);
-
-    let contents = fs::read_to_string(taskpath).unwrap_or_else(|_| "".to_string());
-    println!("{}", contents);
-
-    let contents_done = fs::read_to_string(donepath).unwrap_or_else(|_| "".to_string());
-    println!("{}", contents);
-
-    let mut tasks: HashMap<String, String> = HashMap::new();
-    let mut done: HashMap<String, String> = HashMap::new();
-
-    for line in contents.lines() {
-        tasks.insert(hash(&line.to_string()), line.to_string());
-    }
-
-    for line in contents_done.lines() {
-        done.insert(hash(&line.to_string()), line.to_string());
-    }
-
-    (tasks, done)
-}
-
 fn write_files(
-    tasks: HashMap<String, String>,
-    done: HashMap<String, String>,
-    taskpath: PathBuf,
+    tasks: &HashMap<String, String>,
+    done: &HashMap<String, String>,
+    taskpath: &PathBuf,
     delete_empty: bool,
 ) {
     let donefile = format!(
@@ -154,7 +145,7 @@ fn write_files(
         return;
     }
     let mut data = String::new();
-    for (hash, task) in &tasks {
+    for (hash, task) in tasks {
         data = format!("{}\n{} - {}\n", data, hash, task);
     }
     println!("{:?}", tasks);
