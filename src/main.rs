@@ -6,9 +6,11 @@ use getopts::*;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
+use std::fs::File;
+use std::io::LineWriter;
+use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
-
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut opts = Options::new();
@@ -59,8 +61,6 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     let mut taskpath = PathBuf::from(&taskdir);
     taskpath.push(&taskfile);
 
-    println!("taskdir: {}", taskpath.to_str().unwrap().to_string());
-
     // read files
     let mut donepath = PathBuf::from(taskpath.as_path().parent().unwrap().to_path_buf());
     donepath.push(donefile);
@@ -83,21 +83,60 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     }
 
     if matches.opt_present("done") {
-        for (hash, task) in done {
-            println!("{} - {}", hash, task);
+        for (_, task) in done {
+            println!("{}", task);
         }
         return;
     }
 
+    let mut write = false;
+
+    // finish task
+    if matches.opt_present("f") {
+        let task = matches.opt_str("f").unwrap();
+        let key = matches.opt_str("f").unwrap();
+        done.insert(task, tasks.get(&key).unwrap().to_string());
+        tasks.remove(&key);
+        write = true;
+    }
+
+    // add new task
     if !matches.free.is_empty() {
         let task = matches.free.join(" ");
         tasks.insert(hash(&task), task);
         let delete_empty = matches.opt_present("d");
         println!("{:?}", delete_empty);
-        write_files(&tasks, &done, &taskpath, delete_empty);
-        return;
+        write = true;
     }
 
+    // write files
+    if write {
+        if matches.opt_present("d") && tasks.is_empty() {
+            if Path::new(&taskpath).exists() {
+                fs::remove_file(taskpath).unwrap();
+                fs::remove_file(donepath).unwrap();
+            }
+            return;
+        }
+        //tasks
+        let file = File::create(taskpath.to_str().unwrap()).unwrap();
+        let mut file = LineWriter::new(file);
+
+        for (_, task) in &tasks {
+            file.write_all(task.as_bytes()).unwrap();
+        }
+        file.flush().unwrap();
+        //done
+        let file = File::create(donepath.to_str().unwrap()).unwrap();
+        let mut file = LineWriter::new(file);
+
+        for (_, task) in &done {
+            file.write_all(task.as_bytes()).unwrap();
+        }
+        file.flush().unwrap();
+    }
+
+    // print tasks
     for (hash, task) in tasks {
         println!("{} - {}", hash, task);
     }
@@ -107,44 +146,4 @@ fn hash(str: &String) -> String {
     let mut hasher = Sha256::new();
     hasher.input_str(&str);
     hasher.result_str()
-}
-
-fn write_files(
-    tasks: &HashMap<String, String>,
-    done: &HashMap<String, String>,
-    taskpath: &PathBuf,
-    delete_empty: bool,
-) {
-    let donefile = format!(
-        ".{}.done",
-        taskpath
-            .as_path()
-            .file_name()
-            .unwrap()
-            .to_os_string()
-            .into_string()
-            .unwrap()
-    );
-    let mut donepath = PathBuf::from(taskpath.as_path().parent().unwrap().to_path_buf());
-    donepath.push(donefile);
-
-    if delete_empty {
-        if Path::new(&taskpath).exists() {
-            fs::remove_file(taskpath).unwrap();
-            fs::remove_file(donepath).unwrap();
-        }
-        return;
-    }
-    let mut data = String::new();
-    for (hash, task) in tasks {
-        data = format!("{}\n{} - {}\n", data, hash, task);
-    }
-    println!("{:?}", tasks);
-    println!("{:?}", data);
-    fs::write(taskpath, data).expect("Unable to write task file");
-    let mut data = String::new();
-    for (hash, task) in done {
-        data = format!("{}\n{} - {}\n", data, hash, task);
-    }
-    fs::write(donepath, data).expect("Unable to write donefile");
 }
