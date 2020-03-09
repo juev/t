@@ -51,6 +51,7 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
 
     let path = env::current_dir().unwrap();
     let taskfile = matches.opt_str("l").unwrap_or_else(|| "tasks".to_string());
+    let donefile = format!(".{}.done", taskfile);
     let taskdir = matches
         .opt_str("t")
         .unwrap_or_else(|| path.to_str().unwrap().to_string());
@@ -61,16 +62,6 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     println!("taskdir: {}", taskpath.to_str().unwrap().to_string());
 
     // read files
-    let donefile = format!(
-        ".{}.done",
-        taskpath
-            .as_path()
-            .file_name()
-            .unwrap()
-            .to_os_string()
-            .into_string()
-            .unwrap()
-    );
     let mut donepath = PathBuf::from(taskpath.as_path().parent().unwrap().to_path_buf());
     donepath.push(donefile);
 
