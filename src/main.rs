@@ -92,7 +92,7 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
         let task = matches.opt_str("f").unwrap();
         let key = matches.opt_str("f").unwrap();
         done.insert(task, tasks.get(&key).unwrap().to_string());
-        tasks.remove(&key);
+        tasks.remove_entry(&key);
         write = true;
     }
 
@@ -112,12 +112,10 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
             }
             return;
         }
-        // TODO fix write to file
         //tasks
         let mut file = OpenOptions::new()
             .create(true)
             .write(true)
-            .append(true)
             .open(taskpath.to_str().unwrap())
             .unwrap();
 
@@ -129,7 +127,6 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
         let mut file = OpenOptions::new()
             .create(true)
             .write(true)
-            .append(true)
             .open(donepath.to_str().unwrap())
             .unwrap();
 
