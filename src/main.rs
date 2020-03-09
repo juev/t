@@ -6,8 +6,7 @@ use getopts::*;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
-use std::fs::File;
-use std::io::LineWriter;
+use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
@@ -66,10 +65,7 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     donepath.push(donefile);
 
     let contents = fs::read_to_string(&taskpath).unwrap_or_else(|_| "".to_string());
-    println!("{}", contents);
-
     let contents_done = fs::read_to_string(&donepath).unwrap_or_else(|_| "".to_string());
-    println!("{}", contents);
 
     let mut tasks: HashMap<String, String> = HashMap::new();
     let mut done: HashMap<String, String> = HashMap::new();
@@ -104,8 +100,6 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     if !matches.free.is_empty() {
         let task = matches.free.join(" ");
         tasks.insert(hash(&task), task);
-        let delete_empty = matches.opt_present("d");
-        println!("{:?}", delete_empty);
         write = true;
     }
 
@@ -118,22 +112,31 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
             }
             return;
         }
+        // TODO fix write to file
         //tasks
-        let file = File::create(taskpath.to_str().unwrap()).unwrap();
-        let mut file = LineWriter::new(file);
+        let mut file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .append(true)
+            .open(taskpath.to_str().unwrap())
+            .unwrap();
 
         for (_, task) in &tasks {
-            file.write_all(task.as_bytes()).unwrap();
+            writeln!(file, "{}", task).unwrap();
         }
-        file.flush().unwrap();
+
         //done
-        let file = File::create(donepath.to_str().unwrap()).unwrap();
-        let mut file = LineWriter::new(file);
+        let mut file = OpenOptions::new()
+            .create(true)
+            .write(true)
+            .append(true)
+            .open(donepath.to_str().unwrap())
+            .unwrap();
 
         for (_, task) in &done {
-            file.write_all(task.as_bytes()).unwrap();
+            writeln!(file, "{}", task).unwrap();
         }
-        file.flush().unwrap();
+        return;
     }
 
     // print tasks
