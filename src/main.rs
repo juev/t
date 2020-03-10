@@ -93,16 +93,43 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     if matches.opt_present("f") {
         let task = matches.opt_str("f").unwrap();
         let key = matches.opt_str("f").unwrap();
-        done.insert(task, tasks.get(&key).unwrap().to_string());
-        tasks.remove(&key);
-        write_files(tasks, done, taskpath, donepath, delete_empty);
+        if tasks.contains_key(&task) {
+            done.insert(task, tasks.get(&key).unwrap().to_string());
+            tasks.remove(&key);
+            write_files(tasks, done, taskpath, donepath, delete_empty);
+        } else {
+            println!("Task does not exist: {}", &task);
+        }
         return;
     }
     // remove task
     if matches.opt_present("r") {
-        let task = matches.opt_str("f").unwrap();
-        tasks.remove(&task);
-        write_files(tasks, done, taskpath, donepath, delete_empty);
+        let task = matches.opt_str("r").unwrap();
+        if tasks.contains_key(&task) {
+            tasks.remove(&task);
+            write_files(tasks, done, taskpath, donepath, delete_empty);
+        } else {
+            println!("Task does not exist: {}", &task);
+        }
+        return;
+    }
+
+    // edit task
+    if matches.opt_present("e") {
+        let task = matches.opt_str("e").unwrap();
+        if tasks.contains_key(&task) {
+            if !matches.free.is_empty() {
+                tasks.remove(&task);
+                let task = matches.free.join(" ");
+                tasks.insert(hash(&task), task);
+                write_files(tasks, done, taskpath, donepath, delete_empty);
+            } else {
+                println!("Please provide text for new task.");
+                return;
+            }
+        } else {
+            println!("Task does not exist: {}", &task);
+        }
         return;
     }
 
