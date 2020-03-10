@@ -92,25 +92,31 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     // finish task
     if matches.opt_present("f") {
         let task = matches.opt_str("f").unwrap();
-        let key = matches.opt_str("f").unwrap();
-        if tasks.contains_key(&task) {
-            done.insert(task, tasks.get(&key).unwrap().to_string());
-            tasks.remove(&key);
-            write_files(tasks, done, taskpath, donepath, delete_empty);
-        } else {
-            println!("Task does not exist: {}", &task);
+        for t in task.split(',') {
+            let t = String::from(t);
+            let key = String::from(&t);
+            if tasks.contains_key(&t) {
+                done.insert(t, tasks.get(&key).unwrap().to_string());
+                tasks.remove(&key);
+            } else {
+                println!("Task does not exist: {}", &t);
+            }
         }
+        write_files(tasks, done, taskpath, donepath, delete_empty);
         return;
     }
     // remove task
     if matches.opt_present("r") {
         let task = matches.opt_str("r").unwrap();
-        if tasks.contains_key(&task) {
-            tasks.remove(&task);
-            write_files(tasks, done, taskpath, donepath, delete_empty);
-        } else {
-            println!("Task does not exist: {}", &task);
+        for t in task.split(',') {
+            let t = String::from(t);
+            if tasks.contains_key(&t) {
+                tasks.remove(&t);
+            } else {
+                println!("Task does not exist: {}", &task);
+            }
         }
+        write_files(tasks, done, taskpath, donepath, delete_empty);
         return;
     }
 
