@@ -57,10 +57,14 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
         .opt_str("t")
         .unwrap_or_else(|| path.to_str().unwrap().to_string());
 
+    if !Path::new(&taskdir).exists() {
+        eprintln!("Directory does not exist: {}", taskdir);
+        return;
+    }
+    // read files
     let mut taskpath = PathBuf::from(&taskdir);
     taskpath.push(&taskfile);
 
-    // read files
     let mut donepath = taskpath.as_path().parent().unwrap().to_path_buf();
     donepath.push(donefile);
 
@@ -91,6 +95,13 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
         let key = matches.opt_str("f").unwrap();
         done.insert(task, tasks.get(&key).unwrap().to_string());
         tasks.remove(&key);
+        write_files(tasks, done, taskpath, donepath, delete_empty);
+        return;
+    }
+    // remove task
+    if matches.opt_present("r") {
+        let task = matches.opt_str("f").unwrap();
+        tasks.remove(&task);
         write_files(tasks, done, taskpath, donepath, delete_empty);
         return;
     }
