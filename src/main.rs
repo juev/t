@@ -99,6 +99,7 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     // finish task
     if matches.opt_present("f") {
         let task = matches.opt_str("f").unwrap();
+        let task = get_hash(task.as_str(), &tasks, &prefixes).unwrap();
         for t in task.split(',') {
             let t = String::from(t);
             let key = String::from(&t);
@@ -115,6 +116,7 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     // remove task
     if matches.opt_present("r") {
         let task = matches.opt_str("r").unwrap();
+        let task = get_hash(task.as_str(), &tasks, &prefixes).unwrap();
         for t in task.split(',') {
             let t = String::from(t);
             if tasks.contains_key(&t) {
@@ -130,6 +132,7 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     // edit task
     if matches.opt_present("e") {
         let task = matches.opt_str("e").unwrap();
+        let task = get_hash(task.as_str(), &tasks, &prefixes).unwrap();
         if tasks.contains_key(&task) {
             if !matches.free.is_empty() {
                 tasks.remove(&task);
@@ -155,13 +158,16 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     }
 
     // print tasks
+    let word = matches.opt_str("g").unwrap_or_else(|| "".to_string());
     for (hash, task) in tasks.iter() {
-        if matches.opt_present("q") {
-            println!("{}", task);
-        } else if matches.opt_present("v") {
-            println!("{} - {}", hash, task);
-        } else {
-            println!("{} - {}", get_prefix_by_hash(&prefixes, hash), task);
+        if task.contains(&word) {
+            if matches.opt_present("q") {
+                println!("{}", task);
+            } else if matches.opt_present("v") {
+                println!("{} - {}", hash, task);
+            } else if let Some(prefix) = get_prefix_by_hash(&prefixes, hash) {
+                println!("{} - {}", prefix, task);
+            }
         }
     }
 }
@@ -182,13 +188,26 @@ fn get_prefix(prefixes: &HashMap<String, String>, hash: &str) -> String {
     String::from(hash)
 }
 
-fn get_prefix_by_hash(prefixes: &HashMap<String, String>, hash: &str) -> String {
+fn get_prefix_by_hash(prefixes: &HashMap<String, String>, hash: &str) -> Option<String> {
     for (id, prefix) in prefixes.iter() {
         if hash == prefix {
-            return String::from(id);
+            return Some(String::from(id));
         }
     }
-    String::from("")
+    None
+}
+
+fn get_hash(
+    id: &str,
+    tasks: &HashMap<String, String>,
+    prefixes: &HashMap<String, String>,
+) -> Option<String> {
+    if prefixes.contains_key(id) {
+        return Some(prefixes.get(id).unwrap().to_string());
+    } else if tasks.contains_key(id) {
+        return Some(String::from(id));
+    }
+    None
 }
 
 fn write_files(
