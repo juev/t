@@ -73,6 +73,7 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
 
     let mut tasks: HashMap<String, String> = HashMap::new();
     let mut done: HashMap<String, String> = HashMap::new();
+    let mut prefixes: HashMap<String, String> = HashMap::new();
 
     for line in contents.lines() {
         tasks.insert(hash(&line.to_string()), line.to_string());
@@ -82,6 +83,12 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
         done.insert(hash(&line.to_string()), line.to_string());
     }
 
+    // fill prefixes
+    for (hash, _) in tasks.iter() {
+        prefixes.insert(get_prefix(&prefixes, hash.as_str()), String::from(hash));
+    }
+
+    // commands
     if matches.opt_present("done") {
         for (_, task) in done {
             println!("{}", task);
@@ -148,8 +155,14 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     }
 
     // print tasks
-    for (hash, task) in tasks {
-        println!("{} - {}", hash, task);
+    for (hash, task) in tasks.iter() {
+        if matches.opt_present("q") {
+            println!("{}", task);
+        } else if matches.opt_present("v") {
+            println!("{} - {}", hash, task);
+        } else {
+            println!("{} - {}", get_prefix_by_hash(&prefixes, hash), task);
+        }
     }
 }
 
@@ -157,6 +170,25 @@ fn hash(str: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.input_str(&str);
     hasher.result_str()
+}
+
+fn get_prefix(prefixes: &HashMap<String, String>, hash: &str) -> String {
+    for i in 1..hash.len() {
+        let prefix = &hash[..i];
+        if !prefixes.contains_key(prefix) {
+            return String::from(prefix);
+        }
+    }
+    String::from(hash)
+}
+
+fn get_prefix_by_hash(prefixes: &HashMap<String, String>, hash: &str) -> String {
+    for (id, prefix) in prefixes.iter() {
+        if hash == prefix {
+            return String::from(id);
+        }
+    }
+    String::from("")
 }
 
 fn write_files(
