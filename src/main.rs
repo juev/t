@@ -10,6 +10,7 @@ use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::Path;
 use std::path::PathBuf;
+
 fn main() {
     let args: Vec<String> = env::args().collect();
     let mut opts = Options::new();
@@ -76,11 +77,11 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     let mut prefixes: HashMap<String, String> = HashMap::new();
 
     for line in contents.lines() {
-        tasks.insert(hash(&line.to_string()), line.to_string());
+        tasks.insert(get_sha256(&line.to_string()), line.to_string());
     }
 
     for line in contents_done.lines() {
-        done.insert(hash(&line.to_string()), line.to_string());
+        done.insert(get_sha256(&line.to_string()), line.to_string());
     }
 
     // fill prefixes
@@ -137,7 +138,7 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
             if !matches.free.is_empty() {
                 tasks.remove(&task);
                 let task = matches.free.join(" ");
-                tasks.insert(hash(&task), task);
+                tasks.insert(get_sha256(&task), task);
                 write_files(tasks, done, taskpath, donepath, delete_empty);
             } else {
                 println!("Please provide text for new task.");
@@ -152,7 +153,7 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     // add new task
     if !matches.free.is_empty() {
         let task = matches.free.join(" ");
-        tasks.insert(hash(&task), task);
+        tasks.insert(get_sha256(&task), task);
         write_files(tasks, done, taskpath, donepath, delete_empty);
         return;
     }
@@ -172,7 +173,7 @@ Usage: t [-t DIR] [-l LIST] [options] [TEXT]";
     }
 }
 
-fn hash(str: &str) -> String {
+fn get_sha256(str: &str) -> String {
     let mut hasher = Sha256::new();
     hasher.input_str(&str);
     hasher.result_str()
