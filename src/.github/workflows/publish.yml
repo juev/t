@@ -1,0 +1,41 @@
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  publish:
+    name: Publish for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            artifact_name: t
+            asset_name: t-linux-amd64
+          - os: windows-latest
+            artifact_name: t.exe
+            asset_name: t-windows-amd64
+          - os: macos-latest
+            artifact_name: t
+            asset_name: t-macos-amd64
+
+    steps:
+    - uses: hecrj/setup-rust-action@v1-release
+      with:
+        rust-version: stable
+    - uses: actions/checkout@v2
+    - name: Build
+      run: cargo build --release --locked
+    - name: UPX binary
+      uses: actions-github/upx@master
+      with:
+        file: target/release/${{ matrix.artifact_name }}
+        upx_args: '-9'
+    - name: Upload binaries to release
+      uses: svenstaro/upload-release-action@v1-release
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: target/release/${{ matrix.artifact_name }}
+        asset_name: ${{ matrix.asset_name }}
+        tag: ${{ github.ref }}
