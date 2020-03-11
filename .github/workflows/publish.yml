@@ -18,11 +18,6 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build
         run: cargo build --release
-      - name: UPX binary
-        uses: docker://gact/upx:latest
-        with:
-          file: target/release/t
-          upx_args: '-9'
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v1-release
         with:
