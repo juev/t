@@ -12,7 +12,7 @@ jobs:
         os: [ubuntu-latest, windows-latest, macOS-latest]
 
     steps:
-      - uses: hecrj/setup-rust-action@v1-release
+      - uses: hecrj/setup-rust-action@v1
         with:
           rust-version: stable
       - uses: actions/checkout@v2
