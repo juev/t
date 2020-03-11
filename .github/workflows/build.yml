@@ -6,20 +6,29 @@ on:
 
 jobs:
   build:
-    name: Publish for ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Build
+    runs-on: ${{ matrix.config.os }}
     strategy:
       matrix:
-        include:
-          - os: ubuntu-latest
-            artifact_name: t
-            asset_name: t-linux-amd64
-          - os: windows-latest
-            artifact_name: t.exe
-            asset_name: t-windows-amd64
-          - os: macos-latest
-            artifact_name: t
-            asset_name: t-macos-amd64
+        config:
+          - {
+            os: ubuntu-latest,
+            artifact_name: t,
+            asset_name: t-linux-amd64,
+            strip: true
+            }
+          - {
+            os: windows-latest,
+            artifact_name: t.exe,
+            asset_name: t-windows-amd64,
+            strip: false
+            }
+          - {
+            os: macos-latest,
+            artifact_name: t,
+            asset_name: t-macos-amd64,
+            strip: true
+            }
     steps:
       - uses: hecrj/setup-rust-action@v1
         with:
@@ -27,8 +36,9 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build
         run: cargo build --release
-      - name: UPX binary
-        uses: docker://gact/upx:latest
+      - name: Compress binaries
+        uses: svenstaro/upx-action@v1-release
         with:
-          file: target/release/${{ matrix.artifact_name }}
-          upx_args: '-9'
+          file: target/release/${{ matrix.config.artifact_name }}
+          args: '-9'
+          strip: ${{ matrix.config.strip }}
