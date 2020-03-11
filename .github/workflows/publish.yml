@@ -9,16 +9,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        include:
-          - os: ubuntu-latest
-            artifact_name: t
-            asset_name: t-linux-amd64
-          - os: windows-latest
-            artifact_name: t.exe
-            asset_name: t-windows-amd64
-          - os: macos-latest
-            artifact_name: t
-            asset_name: t-macos-amd64
+        - os: ubuntu-latest
+          artifact_name: t
+          asset_name: t-linux-amd64
+        - os: windows-latest
+          artifact_name: t.exe
+          asset_name: t-windows-amd64
+        - os: macos-latest
+          artifact_name: t
+          asset_name: t-macos-amd64
 
     steps:
     - uses: hecrj/setup-rust-action@v1-release
