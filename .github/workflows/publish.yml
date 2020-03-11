@@ -19,7 +19,7 @@ jobs:
       - name: Build
         run: cargo build --release
       - name: UPX binary
-        uses: actions-github/upx@master
+        uses: docker://gact/upx:latest
         with:
           file: target/release/t
           upx_args: '-9'
